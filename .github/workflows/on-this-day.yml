@@ -1,0 +1,92 @@
+name: Generador PDF
+
+on:
+  workflow_dispatch:
+    inputs:
+      month:
+        description: 'Mes en formato MM'
+        required: true
+      day:
+        description: 'Día en formato DD'
+        required: true
+
+env:
+  LANG: ${{ secrets.LANG }}
+
+jobs:
+  busqueda y almacenamiento en cache:
+    name: Obtener eventos históricos
+    runs-on: ubuntu-latest
+    outputs:
+      events-matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Configurar variables
+        id: vars
+        run: |
+          echo "CACHE_KEY=onthisday-${{ env.LANG }}-${{ github.event.inputs.month }}-${{ github.event.inputs.day }}" >> $GITHUB_ENV
+
+      - name: Recuperar cache si existe
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: ./cached_response.json
+          key: ${{ env.CACHE_KEY }}
+
+      - name: Consumir API si no hay cache
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .
+          curl -sSL "https://api.wikimedia.org/feed/v1/wikipedia/${{ env.LANG }}/onthisday/selected/${{ github.event.inputs.month }}/${{ github.event.inputs.day }}" \
+            -H "User-Agent: GitHubActionBot/1.0" \
+            -o cached_response.json
+
+      - name: Guardar en cache
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: ./cached_response.json
+          key: ${{ env.CACHE_KEY }}
+
+      - name: Extraer matriz de eventos
+        id: set-matrix
+        run: |
+          EVENTS=$(jq '.selected | to_entries | map({index: .key|tostring})' cached_response.json)
+          echo "matrix={\"include\":$EVENTS}" >> $GITHUB_OUTPUT
+
+  generate-pdfs:
+    name: Generar PDF para evento #${{ matrix.index }}
+    needs: fetch-and-cache-events
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.fetch-and-cache-events.outputs.events-matrix) }}
+
+    steps:
+      - name: Descargar respuesta cacheada
+        uses: actions/cache@v4
+        with:
+          path: ./cached_response.json
+          key: onthisday-${{ env.LANG }}-${{ github.event.inputs.month }}-${{ github.event.inputs.day }}
+
+      - name: Obtener título y URL
+        id: extract
+        run: |
+          INDEX=${{ matrix.index }}
+          TITLE=$(jq -r ".selected[$INDEX].pages[0].title" cached_response.json | sed 's/ /_/g' | sed 's/[^a-zA-Z0-9_]/_/g')
+          URL=$(jq -r ".selected[$INDEX].pages[0].content_urls.desktop.page" cached_response.json)
+          echo "title=$TITLE" >> $GITHUB_OUTPUT
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      - name: Convertir HTML a PDF
+        id: convert
+        uses: phoenix-actions/html-to-pdf@v1
+        with:
+          url: ${{ steps.extract.outputs.url }}
+          outputFile: output.pdf
+
+      - name: Subir artefacto PDF
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.inputs.month }}-${{ github.event.inputs.day }}-${{ steps.extract.outputs.title }}
+          path: output.pdf
+          retention-days: 1
