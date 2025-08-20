@@ -11,7 +11,7 @@ on:
         required: true
 
 env:
-  LANG: ${{ secrets.LANG }}
+  LANG: ${{ vars.LANG }}
 
 jobs:
   busqueda y almacenamiento en cache:
