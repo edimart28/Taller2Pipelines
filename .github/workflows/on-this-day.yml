@@ -76,11 +76,11 @@ jobs:
           echo "title=$TITLE" >> $GITHUB_OUTPUT
           echo "url=$URL" >> $GITHUB_OUTPUT
 
-      - name: Convertir HTML a PDF
-        uses: narthanaj/html-to-pdf-action@v1
+      - name: html to pdf
+        uses: fifsky/html-to-pdf-action@master
         with:
-          source: ${{ matrix.event.pages[0].content_urls.desktop.page }}
-          output: output.pdf
+          htmlFile: ./public/index.html
+          outputFile: output.pdf
           
       - name: Subir artefacto PDF
         uses: actions/upload-artifact@v4
