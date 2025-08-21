@@ -14,7 +14,7 @@ env:
   LANG: ${{ vars.LANG }}
 
 jobs:
-  busqueda y almacenamiento en cache:
+  busqueda-almacenamiento-cache:
     name: Obtener eventos históricos
     runs-on: ubuntu-latest
     outputs:
@@ -35,9 +35,8 @@ jobs:
       - name: Consumir API si no hay cache
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          mkdir -p .
+          mkdir -p ./cache
           curl -sSL "https://api.wikimedia.org/feed/v1/wikipedia/${{ env.LANG }}/onthisday/selected/${{ github.event.inputs.month }}/${{ github.event.inputs.day }}" \
-            -H "User-Agent: GitHubActionBot/1.0" \
             -o cached_response.json
 
       - name: Guardar en cache
@@ -55,11 +54,11 @@ jobs:
 
   generate-pdfs:
     name: Generar PDF para evento #${{ matrix.index }}
-    needs: fetch-and-cache-events
+    needs: busqueda-almacenamiento-cache
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.fetch-and-cache-events.outputs.events-matrix) }}
+      matrix: ${{ fromJson(needs.busqueda-almacenamiento-cache.outputs.events-matrix) }}
 
     steps:
       - name: Descargar respuesta cacheada
