@@ -50,7 +50,7 @@ jobs:
         id: set-matrix
         run: |
           EVENTS=$(jq '.selected | to_entries | map({index: .key|tostring})' cached_response.json)
-          echo "matrix={\"include\":$EVENTS}" >> $GITHUB_OUTPUT
+          echo "matrix={\"include\":$(echo "$EVENTS" | jq -c '.')}" >> $GITHUB_OUTPUT
 
   generate-pdfs:
     name: Generar PDF para evento #${{ matrix.index }}
