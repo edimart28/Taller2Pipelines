@@ -83,8 +83,10 @@ jobs:
           output: event.pdf
 
       - name: Subir artefacto PDF
-        uses: actions/upload-artifact@v4
+        uses: misaelnieto/web_to_pdf_action@v0.3.1
         with:
-          name: ${{ github.event.inputs.month }}-${{ github.event.inputs.day }}-${{ steps.extract.outputs.title }}
-          path: output.pdf
+          webPageURL: ${{ matrix.event.pages[0].content_urls.desktop.page }}
+          outputFile: ./event.pdf
+          usePuppeteer: true
+          useScreen: true
           retention-days: 1
