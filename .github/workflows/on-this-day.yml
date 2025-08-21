@@ -77,11 +77,10 @@ jobs:
           echo "url=$URL" >> $GITHUB_OUTPUT
 
       - name: Convertir HTML a PDF
-        id: convert
-        uses: phoenix-actions/html-to-pdf@v1
+        uses: mikeal/html-pdf-action@v1
         with:
-          url: ${{ steps.extract.outputs.url }}
-          outputFile: output.pdf
+          url: ${{ matrix.event.pages[0].content_urls.desktop.page }}
+          output: event.pdf
 
       - name: Subir artefacto PDF
         uses: actions/upload-artifact@v4
