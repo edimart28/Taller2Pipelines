@@ -53,7 +53,7 @@ jobs:
           echo "matrix={\"include\":$(echo "$EVENTS" | jq -c '.')}" >> $GITHUB_OUTPUT
 
   generate-pdfs:
-    name: Generar PDF para evento #${{ matrix.index }}
+    name: Generar PDF para evento ${{ matrix.index }}
     needs: busqueda-almacenamiento-cache
     runs-on: ubuntu-latest
     strategy:
